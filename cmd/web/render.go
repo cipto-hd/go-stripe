@@ -8,6 +8,13 @@ import (
 	"strings"
 )
 
+type ReceiptType int
+
+const (
+	ReceiptVirtual ReceiptType = iota + 1
+	ReceiptBuyOnce
+)
+
 type templateData struct {
 	StringMap            map[string]string
 	IntMap               map[string]int

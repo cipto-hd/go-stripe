@@ -10,25 +10,34 @@ Virtual Terminal
 
 <div class="alert alert-danger text-center d-none p-1" id="card_messages"></div>
 
-<form action="/payment-succeeded" method="post" name="charge_form" id="charge_form"
-  class="d-block needs-validation charge-form" autocomplete="off" novalidate>
+<form action="/virtual-payment-succeeded" method="post" name="charge_form" id="charge_form"
+  class="d-block needs-validation charge-form mb-5" autocomplete="off" novalidate>
 
   <div class="mb-3">
-    <label for="amount" class="form-label">Amount</label>
-    <input type="number" min="0" step="0.01" name="amount" id="amount" class="form-control" required
-      autocomplete="amount_new">
+    <label for="charge_amount" class="form-label">Amount</label>
+    <input type="number" min="0" step="0.01" name="charge_amount" id="charge_amount" class="form-control" required
+      autocomplete="charge_amount_new">
   </div>
 
   <div class="mb-3">
-    <label for="cardholder_name" class="form-label">Cardholder Name</label>
-    <input type="text" name="cardholder_name" id="cardholder_name" class="form-control" required
-      autocomplete="cardholder_name_new">
+    <label for="first_name" class="form-label">First Name</label>
+    <input type="text" name="first_name" id="first_name" class="form-control" required autocomplete="first_name_new">
   </div>
 
   <div class="mb-3">
-    <label for="cardholder_email" class="form-label">Cardholder Email</label>
-    <input type="email" name="cardholder_email" id="cardholder_email" class="form-control" required
-      autocomplete="cardholder_email_new">
+    <label for="last_name" class="form-label">Last Name</label>
+    <input type="text" name="last_name" id="last_name" class="form-control" required autocomplete="last_name_new">
+  </div>
+
+  <div class="mb-3">
+    <label for="email" class="form-label">Email</label>
+    <input type="email" name="email" id="email" class="form-control" required autocomplete="email_new">
+  </div>
+
+  <div class="mb-3">
+    <label for="card_holder_name" class="form-label">Name on Card</label>
+    <input type="text" name="card_holder_name" id="card_holder_name" class="form-control" required
+      autocomplete="card_holder_name_new">
   </div>
 
   <!-- card number will be built by stripe-->
@@ -49,8 +58,10 @@ Virtual Terminal
     </div>
   </div>
 
-  <input type="hidden" name="payment_intent" id="payment_intent">
-  <input type="hidden" name="payment_method" id="payment_method">
+
+  <input type="hidden" name="amount" id="amount">
+  <input type="hidden" name="payment_intent_id" id="payment_intent_id">
+  <input type="hidden" name="payment_method_id" id="payment_method_id">
   <input type="hidden" name="payment_amount" id="payment_amount">
   <input type="hidden" name="payment_currency" id="payment_currency">
 </form>
@@ -58,5 +69,15 @@ Virtual Terminal
 {{end}}
 
 {{define "js"}}
+<script>
+  // in virtual terminal, charge_ammount is in dollar, but stripe charge is in cent
+  document.getElementById("charge_amount").addEventListener("change", function (evt) {
+    if (evt.target.value !== "") {
+      document.getElementById("amount").value = String((parseFloat(evt.target.value) * 100).toFixed(0))
+    } else {
+      document.getElementById("amount").value = 0;
+    }
+  })
+</script>
 {{template "stripe-js" .}}
 {{end}}

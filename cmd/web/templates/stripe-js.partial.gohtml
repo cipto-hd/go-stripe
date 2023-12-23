@@ -47,8 +47,8 @@
         form.classList.add('was-validated')
         hidePayButton();
 
-        // amount in dollar cent
-        let amountToCharge = String((parseFloat(document.getElementById("amount").value) * 100).toFixed(0))
+        // amount in string dollar cent in stripePayload, for internal api consumsion
+        let amountToCharge = document.getElementById("amount").value
 
         let payload = {
             amount: amountToCharge,
@@ -74,7 +74,7 @@
                         payment_method: {
                             card: card,
                             billing_details: {
-                                name: document.getElementById("cardholder_name").value,
+                                name: document.getElementById("card_holder_name").value,
                             }
                         }
                     }).then(function (result) {
@@ -85,8 +85,8 @@
                         } else if (result.paymentIntent) {
                             if (result.paymentIntent.status === "succeeded") {
                                 // we have charged the card
-                                document.getElementById("payment_intent").value = result.paymentIntent.id;
-                                document.getElementById("payment_method").value = result.paymentIntent.payment_method_types[0];
+                                document.getElementById("payment_intent_id").value = result.paymentIntent.id;
+                                document.getElementById("payment_method_id").value = result.paymentIntent.payment_method;
                                 document.getElementById("payment_amount").value = result.paymentIntent.amount;
                                 document.getElementById("payment_currency").value = result.paymentIntent.currency;
 

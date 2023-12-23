@@ -1,0 +1,32 @@
+{{template "base" . }}
+
+{{define "title"}}
+Payment Succeeded!
+{{end}}
+
+{{define "content"}}
+{{$txn := index .Data "txn"}}
+{{$ReceiptVirtual := index .Data "ReceiptVirtual"}}
+{{$ReceiptBuyOnce := index .Data "ReceiptBuyOnce"}}
+
+<h2 class="mt-5">
+  {{if eq $txn.Type $ReceiptVirtual}}
+  Virtual Terminal
+  {{else if eq $txn.Type $ReceiptBuyOnce}}
+  BuyOnce
+  {{end}}
+  Payment Succeeded
+</h2>
+<hr>
+<p>Payment Intent Id: {{$txn.PaymentIntentID}}</p>
+<p>Customer Name: {{$txn.FirstName}} {{$txn.LastName}}</p>
+<p>Email: {{$txn.Email}}</p>
+<p>Cardholder Name: {{$txn.CardHolderName}}</p>
+<p>Payment Method Id: {{$txn.PaymentMethodID}}</p>
+<p>Payment Amount: {{formatCurrency $txn.PaymentAmount}}</p>
+<p>Payment Currency: {{$txn.PaymentCurrency}}</p>
+<p>Last Four: {{$txn.LastFour}}</p>
+<p>Bank Return Code: {{$txn.BankReturnCode}}</p>
+<p>Expiry Date: {{$txn.ExpiryMonth}}/{{$txn.ExpiryYear}}</p>
+
+{{end}}

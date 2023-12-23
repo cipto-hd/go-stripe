@@ -10,6 +10,22 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
+type OrderStatus int
+
+const (
+	OrderCleared OrderStatus = iota + 1
+	OrderRefunded
+	OrderCancelled
+)
+
+type TxnStatus int
+
+const (
+	TransactionCleared TxnStatus = iota + 1
+	TransactionRefunded
+	TransactionCancelled
+)
+
 // DBModel is the type for database connection values
 type DBModel struct {
 	DB *sql.DB
@@ -47,7 +63,7 @@ type Order struct {
 	WidgetID      int         `json:"widget_id"`
 	TransactionID int         `json:"transaction_id"`
 	CustomerID    int         `json:"customer_id"`
-	StatusID      int         `json:"status_id"`
+	StatusID      OrderStatus `json:"status_id"`
 	Quantity      int         `json:"quantity"`
 	Amount        int         `json:"amount"`
 	CreatedAt     time.Time   `json:"-"`
@@ -81,10 +97,10 @@ type Transaction struct {
 	LastFour            string    `json:"last_four"`
 	ExpiryMonth         int       `json:"expiry_month"`
 	ExpiryYear          int       `json:"expiry_year"`
-	PaymentIntent       string    `json:"payment_intent"`
-	PaymentMethod       string    `json:"payment_method"`
+	PaymentIntentID     string    `json:"payment_intent_id"`
+	PaymentMethodID     string    `json:"payment_method_id"`
 	BankReturnCode      string    `json:"bank_return_code"`
-	TransactionStatusID int       `json:"transaction_status_id"`
+	TransactionStatusID TxnStatus `json:"transaction_status_id"`
 	CreatedAt           time.Time `json:"-"`
 	UpdatedAt           time.Time `json:"-"`
 }
@@ -152,7 +168,7 @@ func (m *DBModel) InsertTransaction(txn Transaction) (int, error) {
 	stmt := `
 		insert into transactions
 			(amount, currency, last_four, bank_return_code, expiry_month, expiry_year,
-				payment_intent, payment_method,
+				payment_intent_id, payment_method_id,
 			transaction_status_id, created_at, updated_at)
 		values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 	`
@@ -164,8 +180,8 @@ func (m *DBModel) InsertTransaction(txn Transaction) (int, error) {
 		txn.BankReturnCode,
 		txn.ExpiryMonth,
 		txn.ExpiryYear,
-		txn.PaymentIntent,
-		txn.PaymentMethod,
+		txn.PaymentIntentID,
+		txn.PaymentMethodID,
 		txn.TransactionStatusID,
 		time.Now(),
 		time.Now(),
@@ -216,33 +232,45 @@ func (m *DBModel) InsertOrder(order Order) (int, error) {
 	return int(id), nil
 }
 
-// InsertOrder inserts a new order, and returns its id
+// InsertCustomer inserts a new customer, and returns its id
 func (m *DBModel) InsertCustomer(c Customer) (int, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 
-	stmt := `
+	var id int
+
+	err := m.DB.QueryRow("SELECT id FROM customers WHERE email = ?", c.Email).Scan(&id)
+	if err != nil && err != sql.ErrNoRows {
+		return 0, nil
+	}
+
+	// if no customer found, then insert it
+	if err == sql.ErrNoRows {
+		stmt := `
 		insert into customers
 			(first_name, last_name, email, created_at, updated_at)
 		values (?, ?, ?, ?, ?)`
 
-	result, err := m.DB.ExecContext(ctx, stmt,
-		c.FirstName,
-		c.LastName,
-		c.Email,
-		time.Now(),
-		time.Now(),
-	)
-	if err != nil {
-		return 0, err
-	}
+		result, err := m.DB.ExecContext(ctx, stmt,
+			c.FirstName,
+			c.LastName,
+			c.Email,
+			time.Now(),
+			time.Now(),
+		)
+		if err != nil {
+			return 0, err
+		}
 
-	id, err := result.LastInsertId()
-	if err != nil {
-		return 0, err
-	}
+		id, err := result.LastInsertId()
+		if err != nil {
+			return 0, err
+		}
 
-	return int(id), nil
+		return int(id), nil
+	} else {
+		return int(id), nil
+	}
 }
 
 // GetUserByEmail gets a user by email address
@@ -367,7 +395,7 @@ func (m *DBModel) GetAllOrders() ([]*Order, error) {
 			&o.Transaction.LastFour,
 			&o.Transaction.ExpiryMonth,
 			&o.Transaction.ExpiryYear,
-			&o.Transaction.PaymentIntent,
+			&o.Transaction.PaymentIntentID,
 			&o.Transaction.BankReturnCode,
 			&o.Customer.ID,
 			&o.Customer.FirstName,
@@ -438,7 +466,7 @@ func (m *DBModel) GetAllOrdersPaginated(pageSize, page int) ([]*Order, int, int,
 			&o.Transaction.LastFour,
 			&o.Transaction.ExpiryMonth,
 			&o.Transaction.ExpiryYear,
-			&o.Transaction.PaymentIntent,
+			&o.Transaction.PaymentIntentID,
 			&o.Transaction.BankReturnCode,
 			&o.Customer.ID,
 			&o.Customer.FirstName,
@@ -523,7 +551,7 @@ func (m *DBModel) GetAllSubscriptions() ([]*Order, error) {
 			&o.Transaction.LastFour,
 			&o.Transaction.ExpiryMonth,
 			&o.Transaction.ExpiryYear,
-			&o.Transaction.PaymentIntent,
+			&o.Transaction.PaymentIntentID,
 			&o.Transaction.BankReturnCode,
 			&o.Customer.ID,
 			&o.Customer.FirstName,
@@ -594,7 +622,7 @@ func (m *DBModel) GetAllSubscriptionsPaginated(pageSize, page int) ([]*Order, in
 			&o.Transaction.LastFour,
 			&o.Transaction.ExpiryMonth,
 			&o.Transaction.ExpiryYear,
-			&o.Transaction.PaymentIntent,
+			&o.Transaction.PaymentIntentID,
 			&o.Transaction.BankReturnCode,
 			&o.Customer.ID,
 			&o.Customer.FirstName,
@@ -671,7 +699,7 @@ func (m *DBModel) GetOrderByID(id int) (Order, error) {
 		&o.Transaction.LastFour,
 		&o.Transaction.ExpiryMonth,
 		&o.Transaction.ExpiryYear,
-		&o.Transaction.PaymentIntent,
+		&o.Transaction.PaymentIntentID,
 		&o.Transaction.BankReturnCode,
 		&o.Customer.ID,
 		&o.Customer.FirstName,

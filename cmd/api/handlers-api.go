@@ -16,6 +16,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/go-chi/chi/v5"
 	// "github.com/go-playground/validator/v10"
 )
 
@@ -50,8 +51,6 @@ func (app *application) GetPaymentIntent(w http.ResponseWriter, r *http.Request)
 		app.errorLog.Println(err)
 		return
 	}
-
-	app.infoLog.Println(payload.Amount)
 
 	amount, err := strconv.Atoi(payload.Amount)
 	if err != nil {
@@ -100,23 +99,23 @@ func (app *application) GetPaymentIntent(w http.ResponseWriter, r *http.Request)
 
 // GetWidgetByID gets one widget by id and returns as JSON
 func (app *application) GetWidgetByID(w http.ResponseWriter, r *http.Request) {
-	// id := chi.URLParam(r, "id")
-	// widgetID, _ := strconv.Atoi(id)
+	id := chi.URLParam(r, "id")
+	widgetID, _ := strconv.Atoi(id)
 
-	// widget, err := app.DB.GetWidget(widgetID)
-	// if err != nil {
-	// 	app.errorLog.Println(err)
-	// 	return
-	// }
+	widget, err := app.DB.GetWidget(widgetID)
+	if err != nil {
+		app.errorLog.Println(err)
+		return
+	}
 
-	// out, err := json.MarshalIndent(widget, "", "   ")
-	// if err != nil {
-	// 	app.errorLog.Println(err)
-	// 	return
-	// }
+	out, err := json.MarshalIndent(widget, "", "   ")
+	if err != nil {
+		app.errorLog.Println(err)
+		return
+	}
 
 	w.Header().Set("Content-Type", "application/json")
-	// w.Write(out)
+	w.Write(out)
 }
 
 // Invoice describes the JSON payload sent to the microservice
@@ -424,8 +423,8 @@ func (app *application) VirtualTerminalPaymentSucceeded(w http.ResponseWriter, r
 		FirstName       string `json:"first_name"`
 		LastName        string `json:"last_name"`
 		Email           string `json:"email"`
-		PaymentIntent   string `json:"payment_intent"`
-		PaymentMethod   string `json:"payment_method"`
+		PaymentIntentID string `json:"payment_intent_id"`
+		PaymentMethodID string `json:"payment_method_id"`
 		BankReturnCode  string `json:"bank_return_code"`
 		ExpiryMonth     int    `json:"expiry_month"`
 		ExpiryYear      int    `json:"expiry_year"`
@@ -443,13 +442,13 @@ func (app *application) VirtualTerminalPaymentSucceeded(w http.ResponseWriter, r
 		Key:    app.config.stripe.key,
 	}
 
-	pi, err := card.RetrievePaymentIntent(txnData.PaymentIntent)
+	pi, err := card.RetrievePaymentIntent(txnData.PaymentIntentID)
 	if err != nil {
 		// app.badRequest(w, r, err)
 		return
 	}
 
-	pm, err := card.GetPaymentMethod(txnData.PaymentMethod)
+	pm, err := card.GetPaymentMethod(txnData.PaymentMethodID)
 	if err != nil {
 		// app.badRequest(w, r, err)
 		return
@@ -465,8 +464,8 @@ func (app *application) VirtualTerminalPaymentSucceeded(w http.ResponseWriter, r
 		LastFour:            txnData.LastFour,
 		ExpiryMonth:         txnData.ExpiryMonth,
 		ExpiryYear:          txnData.ExpiryYear,
-		PaymentIntent:       txnData.PaymentIntent,
-		PaymentMethod:       txnData.PaymentMethod,
+		PaymentIntentID:     txnData.PaymentIntentID,
+		PaymentMethodID:     txnData.PaymentMethodID,
 		BankReturnCode:      pi.Charges.Data[0].ID,
 		TransactionStatusID: 2,
 	}
