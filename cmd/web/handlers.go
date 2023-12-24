@@ -110,6 +110,7 @@ func (app *application) PaymentSucceeded(w http.ResponseWriter, r *http.Request)
 
 /*
 *******************
+Handler for "/virtual-payment-succeeded" route
 VirtualTerminalPaymentSucceeded displays the receipt page for virtual terminal transactions
 ********************
 */
@@ -167,6 +168,33 @@ func (app *application) ChargeOnce(w http.ResponseWriter, r *http.Request) {
 
 	if err := app.renderTemplate(w, r, "buy-once", &templateData{Data: data}, "stripe-js"); err != nil {
 		app.errorLog.Println(err)
+	}
+}
+
+/*
+*******************
+Handler for "/plans/bronze" route
+********************
+*/
+func (app *application) BronzePlan(w http.ResponseWriter, r *http.Request) {
+	widget, err := app.DB.GetWidget(4)
+	if err != nil {
+		app.errorLog.Println(err)
+		return
+	}
+
+	data := make(map[string]interface{})
+	data["widget"] = widget
+
+	if err := app.renderTemplate(w, r, "bronze-plan", &templateData{Data: data}); err != nil {
+		app.errorLog.Println(err)
+	}
+}
+
+// BronzePlanReceipt displays the receipt for bronze plans
+func (app *application) BronzePlanReceipt(w http.ResponseWriter, r *http.Request) {
+	if err := app.renderTemplate(w, r, "receipt-plan", &templateData{}); err != nil {
+		app.errorLog.Print(err)
 	}
 }
 

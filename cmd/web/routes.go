@@ -16,6 +16,8 @@ func (app *application) routes() http.Handler {
 	mux.Post("/virtual-payment-succeeded", app.VirtualTerminalPaymentSucceeded)
 	mux.Get("/receipt", app.Receipt)
 	mux.Get("/widgets/{id}", app.ChargeOnce)
+	mux.Get("/plans/bronze", app.BronzePlan)
+	mux.Get("/receipt/bronze", app.BronzePlanReceipt)
 
 	// the path is relative from working directory
 	fileServer := http.FileServer(http.Dir("./static"))

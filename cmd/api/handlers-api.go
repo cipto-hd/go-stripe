@@ -2,37 +2,42 @@ package main
 
 import (
 	// "bytes"
+	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"myapp/internal/cards"
 	"strconv"
+
 	// "myapp/internal/encryption"
 	"myapp/internal/models"
 	"myapp/internal/urlsigner"
 	"myapp/internal/validator"
 	"net/http"
+
 	// "strconv"
 	"strings"
 	"time"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/stripe/stripe-go/v72"
 	// "github.com/go-playground/validator/v10"
 )
 
 type stripePayload struct {
-	Currency      string `json:"currency"`
-	Amount        string `json:"amount"`
-	PaymentMethod string `json:"payment_method"`
-	Email         string `json:"email"`
-	CardBrand     string `json:"card_brand"`
-	ExpiryMonth   int    `json:"exp_month"`
-	ExpiryYear    int    `json:"exp_year"`
-	LastFour      string `json:"last_four"`
-	Plan          string `json:"plan"`
-	ProductID     string `json:"product_id"`
-	FirstName     string `json:"first_name"`
-	LastName      string `json:"last_name"`
+	Currency        string `json:"currency"`
+	Amount          string `json:"amount"`
+	PaymentMethodID string `json:"payment_method_id"`
+	Email           string `json:"email"`
+	CardBrand       string `json:"card_brand"`
+	ExpiryMonth     int    `json:"exp_month"`
+	ExpiryYear      int    `json:"exp_year"`
+	LastFour        string `json:"last_four"`
+	PlanID          string `json:"plan_id"`
+	ProductID       string `json:"product_id"`
+	FirstName       string `json:"first_name"`
+	LastName        string `json:"last_name"`
+	CardHolderName  string `json:"card_holder_name"`
 }
 
 type jsonResponse struct {
@@ -145,98 +150,98 @@ func (app *application) CreateCustomerAndSubscribeToPlan(w http.ResponseWriter, 
 	v.Check(len(data.FirstName) > 1, "first_name", "must be at least 2 characters")
 
 	if !v.Valid() {
-		// app.failedValidation(w, r, v.Errors)
+		app.failedValidation(w, r, v.Errors)
 		return
 	}
 
-	// card := cards.Card{
-	// 	Secret:   app.config.stripe.secret,
-	// 	Key:      app.config.stripe.key,
-	// 	Currency: data.Currency,
-	// }
+	card := cards.Card{
+		Secret:   app.config.stripe.secret,
+		Key:      app.config.stripe.key,
+		Currency: data.Currency,
+	}
 
 	okay := true
-	// var subscription *stripe.Subscription
+	var subscription *stripe.Subscription
 	txnMsg := "Transaction successful"
 
-	// stripeCustomer, msg, err := card.CreateCustomer(data.PaymentMethod, data.Email)
-	// if err != nil {
-	// 	app.errorLog.Println(err)
-	// 	okay = false
-	// 	txnMsg = msg
-	// }
+	stripeCustomer, msg, err := card.CreateCustomer(data.PaymentMethodID, data.Email)
+	if err != nil {
+		app.errorLog.Println(err)
+		okay = false
+		txnMsg = msg
+	}
 
-	// if okay {
-	// subscription, err = card.SubscribeToPlan(stripeCustomer, data.Plan, data.Email, data.LastFour, "")
-	// if err != nil {
-	// 	app.errorLog.Println(err)
-	// 	okay = false
-	// 	txnMsg = "Error subscribing customer"
-	// }
-	// }
+	if okay {
+		subscription, err = card.SubscribeToPlan(stripeCustomer, data.PlanID, data.Email, data.LastFour, "")
+		if err != nil {
+			app.errorLog.Println(err)
+			okay = false
+			txnMsg = "Error subscribing customer"
+		}
+	}
 
-	// if okay {
-	// productID, _ := strconv.Atoi(data.ProductID)
-	// customerID, err := app.SaveCustomer(data.FirstName, data.LastName, data.Email)
-	// if err != nil {
-	// 	app.errorLog.Println(err)
-	// 	return
-	// }
+	if okay {
+		productID, _ := strconv.Atoi(data.ProductID)
+		customerID, err := app.SaveCustomer(data.FirstName, data.LastName, data.Email)
+		if err != nil {
+			app.errorLog.Println(err)
+			return
+		}
 
-	// // create a new txn
-	// amount, _ := strconv.Atoi(data.Amount)
+		// create a new txn
+		amount, _ := strconv.Atoi(data.Amount)
 
-	// txn := models.Transaction{
-	// 	Amount:              amount,
-	// 	Currency:            "cad",
-	// 	LastFour:            data.LastFour,
-	// 	ExpiryMonth:         data.ExpiryMonth,
-	// 	ExpiryYear:          data.ExpiryYear,
-	// 	TransactionStatusID: 2,
-	// 	PaymentIntent:       subscription.ID,
-	// 	PaymentMethod:       data.PaymentMethod,
-	// }
+		txn := models.Transaction{
+			Amount:              amount,
+			Currency:            "usd",
+			LastFour:            data.LastFour,
+			ExpiryMonth:         data.ExpiryMonth,
+			ExpiryYear:          data.ExpiryYear,
+			TransactionStatusID: models.TransactionCleared,
+			PaymentIntentID:     subscription.ID,
+			PaymentMethodID:     data.PaymentMethodID,
+		}
 
-	// txnID, err := app.SaveTransaction(txn)
-	// if err != nil {
-	// 	app.errorLog.Println(err)
-	// 	return
-	// }
+		txnID, err := app.SaveTransaction(txn)
+		if err != nil {
+			app.errorLog.Println(err)
+			return
+		}
 
-	// // create order
-	// order := models.Order{
-	// 	WidgetID:      productID,
-	// 	TransactionID: txnID,
-	// 	CustomerID:    customerID,
-	// 	StatusID:      1,
-	// 	Quantity:      1,
-	// 	Amount:        amount,
-	// 	CreatedAt:     time.Now(),
-	// 	UpdatedAt:     time.Now(),
-	// }
+		// create order
+		order := models.Order{
+			WidgetID:      productID,
+			TransactionID: txnID,
+			CustomerID:    customerID,
+			StatusID:      models.OrderCleared,
+			Quantity:      1,
+			Amount:        amount,
+			CreatedAt:     time.Now(),
+			UpdatedAt:     time.Now(),
+		}
 
-	// orderID, err := app.SaveOrder(order)
-	// if err != nil {
-	// 	app.errorLog.Println(err)
-	// 	return
-	// }
+		_, err = app.SaveOrder(order)
+		if err != nil {
+			app.errorLog.Println(err)
+			return
+		}
 
-	// inv := Invoice{
-	// 	ID:        orderID,
-	// 	Amount:    2000,
-	// 	Product:   "Bronze Plan monthly subscription",
-	// 	Quantity:  order.Quantity,
-	// 	FirstName: data.FirstName,
-	// 	LastName:  data.LastName,
-	// 	Email:     data.Email,
-	// 	CreatedAt: time.Now(),
-	// }
+		// inv := Invoice{
+		// 	ID:        orderID,
+		// 	Amount:    2000,
+		// 	Product:   "Bronze Plan monthly subscription",
+		// 	Quantity:  order.Quantity,
+		// 	FirstName: data.FirstName,
+		// 	LastName:  data.LastName,
+		// 	Email:     data.Email,
+		// 	CreatedAt: time.Now(),
+		// }
 
-	// err = app.callInvoiceMicro(inv)
-	// if err != nil {
-	// 	app.errorLog.Println(err)
-	// }
-	// }
+		// err = app.callInvoiceMicro(inv)
+		// if err != nil {
+		// 	app.errorLog.Println(err)
+		// }
+	}
 
 	resp := jsonResponse{
 		OK:      okay,
@@ -254,61 +259,61 @@ func (app *application) CreateCustomerAndSubscribeToPlan(w http.ResponseWriter, 
 }
 
 // callInvoiceMicro calls the invoicing microservice
-// func (app *application) callInvoiceMicro(inv Invoice) error {
-// 	url := "http://localhost:5000/invoice/create-and-send"
-// 	out, err := json.MarshalIndent(inv, "", "\t")
-// 	if err != nil {
-// 		return err
-// 	}
+func (app *application) callInvoiceMicro(inv Invoice) error {
+	url := "http://localhost:5000/invoice/create-and-send"
+	out, err := json.MarshalIndent(inv, "", "\t")
+	if err != nil {
+		return err
+	}
 
-// 	req, err := http.NewRequest("POST", url, bytes.NewBuffer(out))
-// 	if err != nil {
-// 		return err
-// 	}
-// 	req.Header.Set("Content-Type", "application/json")
+	req, err := http.NewRequest("POST", url, bytes.NewBuffer(out))
+	if err != nil {
+		return err
+	}
+	req.Header.Set("Content-Type", "application/json")
 
-// 	client := &http.Client{}
-// 	resp, err := client.Do(req)
-// 	if err != nil {
-// 		return err
-// 	}
-// 	defer resp.Body.Close()
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
 
-// 	return nil
-// }
+	return nil
+}
 
 // SaveCustomer saves a customer and returns id
 func (app *application) SaveCustomer(firstName, lastName, email string) (int, error) {
-	// customer := models.Customer{
-	// 	FirstName: firstName,
-	// 	LastName:  lastName,
-	// 	Email:     email,
-	// }
+	customer := models.Customer{
+		FirstName: firstName,
+		LastName:  lastName,
+		Email:     email,
+	}
 
-	// id, err := app.DB.InsertCustomer(customer)
-	// if err != nil {
-	// 	return 0, err
-	// }
-	return 0, nil
+	id, err := app.DB.InsertCustomer(customer)
+	if err != nil {
+		return 0, err
+	}
+	return id, nil
 }
 
 // SaveTransaction saves a txn and returns id
 func (app *application) SaveTransaction(txn models.Transaction) (int, error) {
-	// id, err := app.DB.InsertTransaction(txn)
-	// if err != nil {
-	// 	return 0, err
-	// }
-	return 0, nil
+	id, err := app.DB.InsertTransaction(txn)
+	if err != nil {
+		return 0, err
+	}
+	return id, nil
 }
 
 // SaveOrder saves a order and returns id
-// func (app *application) SaveOrder(order models.Order) (int, error) {
-// 	id, err := app.DB.InsertOrder(order)
-// 	if err != nil {
-// 		return 0, err
-// 	}
-// 	return id, nil
-// }
+func (app *application) SaveOrder(order models.Order) (int, error) {
+	id, err := app.DB.InsertOrder(order)
+	if err != nil {
+		return 0, err
+	}
+	return id, nil
+}
 
 // CreateAuthToken creates and sends an auth token, if user supplies valid information
 func (app *application) CreateAuthToken(w http.ResponseWriter, r *http.Request) {
@@ -317,47 +322,46 @@ func (app *application) CreateAuthToken(w http.ResponseWriter, r *http.Request) 
 		Password string `json:"password"`
 	}
 
-	// err := app.readJSON(w, r, &userInput)
-	// if err != nil {
-	// 	app.badRequest(w, r, err)
-	// 	return
-	// }
+	err := app.readJSON(w, r, &userInput)
+	if err != nil {
+		app.badRequest(w, r, err)
+		return
+	}
 
 	// get the user from the database by email; send error if invalid email
-	// user, err := app.DB.GetUserByEmail(userInput.Email)
-	// if err != nil {
-	// 	app.invalidCredentials(w)
-	// 	return
-	// }
+	user, err := app.DB.GetUserByEmail(userInput.Email)
+	if err != nil {
+		app.invalidCredentials(w)
+		return
+	}
 
 	// validate the password; send error if invalid password
-	// validPassword, err := app.passwordMatches(user.Password, userInput.Password)
-	// if err != nil {
-	// 	app.invalidCredentials(w)
-	// 	return
-	// }
+	validPassword, err := app.passwordMatches(user.Password, userInput.Password)
+	if err != nil {
+		app.invalidCredentials(w)
+		return
+	}
 
-	// if !validPassword {
-	// 	app.invalidCredentials(w)
-	// 	return
-	// }
+	if !validPassword {
+		app.invalidCredentials(w)
+		return
+	}
 
 	// generate the token
-	// token, err := models.GenerateToken(user.ID, 24*time.Hour, models.ScopeAuthentication)
-	// if err != nil {
-	// 	app.badRequest(w, r, err)
-	// 	return
-	// }
+	token, err := models.GenerateToken(user.ID, 24*time.Hour, models.ScopeAuthentication)
+	if err != nil {
+		app.badRequest(w, r, err)
+		return
+	}
 
 	// save to database
-	// err = app.DB.InsertToken(token, user)
-	// if err != nil {
-	// 	app.badRequest(w, r, err)
-	// 	return
-	// }
+	err = app.DB.InsertToken(token, user)
+	if err != nil {
+		app.badRequest(w, r, err)
+		return
+	}
 
 	// send response
-
 	var payload struct {
 		Error   bool          `json:"error"`
 		Message string        `json:"message"`
@@ -365,9 +369,9 @@ func (app *application) CreateAuthToken(w http.ResponseWriter, r *http.Request) 
 	}
 	payload.Error = false
 	payload.Message = fmt.Sprintf("token for %s created", userInput.Email)
-	// payload.Token = token
+	payload.Token = token
 
-	// _ = app.writeJSON(w, http.StatusOK, payload)
+	_ = app.writeJSON(w, http.StatusOK, payload)
 }
 
 // authenticateToken checks an auth token for validity
@@ -388,12 +392,12 @@ func (app *application) authenticateToken(r *http.Request) (*models.User, error)
 	}
 
 	// get the user from the tokens table
-	// user, err := app.DB.GetUserForToken(token)
-	// if err != nil {
-	// 	return nil, errors.New("no matching user found")
-	// }
+	user, err := app.DB.GetUserForToken(token)
+	if err != nil {
+		return nil, errors.New("no matching user found")
+	}
 
-	return nil, nil
+	return user, nil
 }
 
 // CheckAuthentication checks auth status
@@ -401,7 +405,7 @@ func (app *application) CheckAuthentication(w http.ResponseWriter, r *http.Reque
 	// validate the token, and get associated user
 	user, err := app.authenticateToken(r)
 	if err != nil {
-		// app.invalidCredentials(w)
+		app.invalidCredentials(w)
 		return
 	}
 
@@ -412,7 +416,7 @@ func (app *application) CheckAuthentication(w http.ResponseWriter, r *http.Reque
 	}
 	payload.Error = false
 	payload.Message = fmt.Sprintf("authenticated user %s", user.Email)
-	// app.writeJSON(w, http.StatusOK, payload)
+	app.writeJSON(w, http.StatusOK, payload)
 }
 
 // VirtualTerminalPaymentSucceeded displays a page with receipt information
@@ -431,11 +435,11 @@ func (app *application) VirtualTerminalPaymentSucceeded(w http.ResponseWriter, r
 		LastFour        string `json:"last_four"`
 	}
 
-	// err := app.readJSON(w, r, &txnData)
-	// if err != nil {
-	// 	app.badRequest(w, r, err)
-	// 	return
-	// }
+	err := app.readJSON(w, r, &txnData)
+	if err != nil {
+		app.badRequest(w, r, err)
+		return
+	}
 
 	card := cards.Card{
 		Secret: app.config.stripe.secret,
@@ -444,13 +448,13 @@ func (app *application) VirtualTerminalPaymentSucceeded(w http.ResponseWriter, r
 
 	pi, err := card.RetrievePaymentIntent(txnData.PaymentIntentID)
 	if err != nil {
-		// app.badRequest(w, r, err)
+		app.badRequest(w, r, err)
 		return
 	}
 
 	pm, err := card.GetPaymentMethod(txnData.PaymentMethodID)
 	if err != nil {
-		// app.badRequest(w, r, err)
+		app.badRequest(w, r, err)
 		return
 	}
 
@@ -467,16 +471,16 @@ func (app *application) VirtualTerminalPaymentSucceeded(w http.ResponseWriter, r
 		PaymentIntentID:     txnData.PaymentIntentID,
 		PaymentMethodID:     txnData.PaymentMethodID,
 		BankReturnCode:      pi.Charges.Data[0].ID,
-		TransactionStatusID: 2,
+		TransactionStatusID: models.TransactionCleared,
 	}
 
 	_, err = app.SaveTransaction(txn)
 	if err != nil {
-		// app.badRequest(w, r, err)
+		app.badRequest(w, r, err)
 		return
 	}
 
-	// app.writeJSON(w, http.StatusOK, txn)
+	app.writeJSON(w, http.StatusOK, txn)
 }
 
 // SendPasswordResetEmail sends an email with a signed url to allow user to reset password
@@ -485,24 +489,24 @@ func (app *application) SendPasswordResetEmail(w http.ResponseWriter, r *http.Re
 		Email string `json:"email"`
 	}
 
-	// err := app.readJSON(w, r, &payload)
-	// if err != nil {
-	// 	app.badRequest(w, r, err)
-	// 	return
-	// }
+	err := app.readJSON(w, r, &payload)
+	if err != nil {
+		app.badRequest(w, r, err)
+		return
+	}
 
-	// // verify that email exists
-	// _, err = app.DB.GetUserByEmail(payload.Email)
-	// if err != nil {
-	// 	var resp struct {
-	// 		Error   bool   `json:"error"`
-	// 		Message string `json:"message"`
-	// 	}
-	// 	resp.Error = true
-	// 	resp.Message = "No matching email found on our system"
-	// 	app.writeJSON(w, http.StatusAccepted, resp)
-	// 	return
-	// }
+	// verify that email exists
+	_, err = app.DB.GetUserByEmail(payload.Email)
+	if err != nil {
+		var resp struct {
+			Error   bool   `json:"error"`
+			Message string `json:"message"`
+		}
+		resp.Error = true
+		resp.Message = "No matching email found on our system"
+		app.writeJSON(w, http.StatusAccepted, resp)
+		return
+	}
 
 	link := fmt.Sprintf("%s/reset-password?email=%s", app.config.frontend, payload.Email)
 
@@ -519,12 +523,12 @@ func (app *application) SendPasswordResetEmail(w http.ResponseWriter, r *http.Re
 	data.Link = signedLink
 
 	// send mail
-	// err = app.SendMail("info@widgets.com", payload.Email, "Password Reset Request", "password-reset", data)
-	// if err != nil {
-	// 	app.errorLog.Println(err)
-	// 	app.badRequest(w, r, err)
-	// 	return
-	// }
+	err = app.SendMail("info@widgets.com", payload.Email, "Password Reset Request", "password-reset", data)
+	if err != nil {
+		app.errorLog.Println(err)
+		app.badRequest(w, r, err)
+		return
+	}
 
 	var resp struct {
 		Error   bool   `json:"error"`

@@ -76,10 +76,10 @@ func (c *Card) RetrievePaymentIntent(id string) (*stripe.PaymentIntent, error) {
 }
 
 // SubscribeToPlan subscribes a stripe customer to a stripe plan
-func (c *Card) SubscribeToPlan(cust *stripe.Customer, plan, email, last4, cardType string) (*stripe.Subscription, error) {
+func (c *Card) SubscribeToPlan(cust *stripe.Customer, plan_id, email, last4, cardType string) (*stripe.Subscription, error) {
 	stripeCustomerID := cust.ID
 	items := []*stripe.SubscriptionItemsParams{
-		{Plan: stripe.String(plan)},
+		{Plan: stripe.String(plan_id)},
 	}
 
 	params := &stripe.SubscriptionParams{
@@ -98,13 +98,13 @@ func (c *Card) SubscribeToPlan(cust *stripe.Customer, plan, email, last4, cardTy
 }
 
 // CreateCustomer creates a stripe customer
-func (c *Card) CreateCustomer(pm, email string) (*stripe.Customer, string, error) {
+func (c *Card) CreateCustomer(pm_id, email string) (*stripe.Customer, string, error) {
 	stripe.Key = c.Secret
 	customerParams := &stripe.CustomerParams{
-		PaymentMethod: stripe.String(pm),
+		PaymentMethod: stripe.String(pm_id),
 		Email:         stripe.String(email),
 		InvoiceSettings: &stripe.CustomerInvoiceSettingsParams{
-			DefaultPaymentMethod: stripe.String(pm),
+			DefaultPaymentMethod: stripe.String(pm_id),
 		},
 	}
 
