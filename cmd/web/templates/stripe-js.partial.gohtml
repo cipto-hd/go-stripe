@@ -109,40 +109,6 @@
     }
 
 
-    // function saveTransaction(result) {
-    //   let payload = {
-    //     amount: parseInt(document.getElementById("amount").value, 10),
-    //     currency: result.paymentIntent.currency,
-    //     first_name: "",
-    //     last_name: "",
-    //     email: document.getElementById("cardholder-email").value,
-    //     payment_intent: result.paymentIntent.id,
-    //     payment_method: result.paymentIntent.payment_method,
-    //   }
-
-    //   let token = localStorage.getItem("token");
-
-    //   const requestOptions = {
-    //     method: "post",
-    //     headers: {
-    //       'Accept': 'application/json',
-    //       'Content-Type': 'application/json',
-    //       'Authorization': 'Bearer ' + token,
-    //     },
-    //     body: JSON.stringify(payload),
-    //   }
-
-    //   fetch("{{.API}}/api/admin/virtual-terminal-succeeded", requestOptions)
-    //     .then(response => response.json())
-    //     .then(function (data) {
-    //       console.log(data);
-    //       processing.classList.add("d-none");
-    //       showCardSuccess();
-    //       document.getElementById("bank-return-code").innerHTML = data.bank_return_code;
-    //       document.getElementById("receipt").classList.remove("d-none");
-    //     })
-    // }
-
     (function () {
         // create stripe & elements
         const elements = stripe.elements();

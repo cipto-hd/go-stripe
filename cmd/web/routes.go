@@ -11,12 +11,17 @@ func (app *application) routes() http.Handler {
 	mux.Use(SessionLoad)
 
 	mux.Get("/", app.Home)
-	mux.Post("/payment-succeeded", app.PaymentSucceeded)
+
+	/* routes for buy/subscribe and receipt */
+	mux.Get("/widgets/{id}", app.ChargeOnce)             // show buy-once page
+	mux.Post("/payment-succeeded", app.PaymentSucceeded) // store customer,transaction, order in the db
+	mux.Get("/receipt", app.Receipt)                     // show receipt
+
+	// all details about subscription process happen at backend API
+	mux.Get("/plans/bronze", app.BronzePlan)          // show bronze-plan page
+	mux.Get("/receipt/bronze", app.BronzePlanReceipt) // show bronze-plan receipt
+
 	// mux.Post("/virtual-payment-succeeded", app.VirtualTerminalPaymentSucceeded)
-	mux.Get("/receipt", app.Receipt)
-	mux.Get("/widgets/{id}", app.ChargeOnce)
-	mux.Get("/plans/bronze", app.BronzePlan)
-	mux.Get("/receipt/bronze", app.BronzePlanReceipt)
 
 	/* auth routes */
 	mux.Get("/login", app.LoginPage)
@@ -24,6 +29,7 @@ func (app *application) routes() http.Handler {
 	mux.Get("/logout", app.Logout)
 	mux.Get("/forgot-password", app.ForgotPassword)
 
+	/* admin routes */
 	mux.Route("/admin", func(mux chi.Router) {
 		mux.Use(app.Auth)
 		mux.Get("/virtual-terminal", app.VirtualTerminal)
