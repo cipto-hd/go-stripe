@@ -21,9 +21,11 @@ const (
 type TxnStatus int
 
 const (
-	TransactionCleared TxnStatus = iota + 1
+	TransactionPending TxnStatus = iota + 1
+	TransactionCleared
+	TransactionDeclined
 	TransactionRefunded
-	TransactionCancelled
+	TransactionPartiallyRefunded
 )
 
 // DBModel is the type for database connection values

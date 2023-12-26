@@ -28,10 +28,6 @@
             <a class="nav-link active" aria-current="page" href="/">Home</a>
           </li>
 
-          <li class="nav-item">
-            <a class="nav-link active" aria-current="page" href="/virtual-terminal">Virtual Terminal</a>
-          </li>
-
           <li class="nav-item dropdown">
             <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown"
               aria-expanded="false">
@@ -60,10 +56,10 @@
                 <hr class="dropdown-divider">
               </li>
               <li><a class="dropdown-item" href="/admin/all-users">All Users</a></li>
-              <li>
+              <!-- <li>
                 <hr class="dropdown-divider">
-              </li>
-              <li><a class="dropdown-item" href="/logout">Logout</a></li>
+              </li> -->
+              <!-- <li><a class="dropdown-item" href="/logout">Logout</a></li> -->
             </ul>
           </li>
           {{end}}
@@ -95,6 +91,16 @@
   </div>
 
   <script src="/static/bootstrap.bundle.min.js"></script>
+
+  <script>
+
+    // function logout() {
+    //   localStorage.removeItem("token");
+    //   localStorage.removeItem("token_expiry");
+    //   location.href = "/logout";
+    // }
+
+  </script>
 
   {{block "js" .}}
 

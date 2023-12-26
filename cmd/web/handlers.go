@@ -28,7 +28,7 @@ Handler for "/virtual-terminal" route
 ********************
 */
 func (app *application) VirtualTerminal(w http.ResponseWriter, r *http.Request) {
-	if err := app.renderTemplate(w, r, "terminal", nil, "stripe-js"); err != nil {
+	if err := app.renderTemplate(w, r, "terminal", nil); err != nil {
 		app.errorLog.Println(err)
 	}
 }
@@ -340,6 +340,51 @@ func (app *application) GetTransactionData(r *http.Request) (TransactionData, er
 		BankReturnCode:  pi.Charges.Data[0].ID,
 	}
 	return txnData, nil
+}
+
+// LoginPage displays the login page
+func (app *application) LoginPage(w http.ResponseWriter, r *http.Request) {
+	if err := app.renderTemplate(w, r, "login", &templateData{}); err != nil {
+		app.errorLog.Print(err)
+	}
+}
+
+// PostLoginPage handles the posted login form
+func (app *application) PostLoginPage(w http.ResponseWriter, r *http.Request) {
+	app.Session.RenewToken(r.Context())
+
+	err := r.ParseForm()
+	if err != nil {
+		app.errorLog.Println(err)
+		return
+	}
+
+	email := r.Form.Get("email")
+	password := r.Form.Get("password")
+
+	id, err := app.DB.Authenticate(email, password)
+	if err != nil {
+		http.Redirect(w, r, "/login", http.StatusSeeOther)
+		return
+	}
+
+	app.Session.Put(r.Context(), "userID", id)
+	http.Redirect(w, r, "/", http.StatusSeeOther)
+}
+
+// Logout logs the user out
+func (app *application) Logout(w http.ResponseWriter, r *http.Request) {
+	app.Session.Destroy(r.Context())
+	app.Session.RenewToken(r.Context())
+
+	http.Redirect(w, r, "/login", http.StatusSeeOther)
+}
+
+// ForgotPassword shows the forgot password page
+func (app *application) ForgotPassword(w http.ResponseWriter, r *http.Request) {
+	if err := app.renderTemplate(w, r, "forgot-password", &templateData{}); err != nil {
+		app.errorLog.Print(err)
+	}
 }
 
 /***************************************
