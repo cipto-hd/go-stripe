@@ -89,6 +89,7 @@ func (app *application) invalidCredentials(w http.ResponseWriter) error {
 
 func (app *application) passwordMatches(hash, password string) (bool, error) {
 	err := bcrypt.CompareHashAndPassword([]byte(hash), []byte(password))
+
 	if err != nil {
 		switch {
 		case errors.Is(err, bcrypt.ErrMismatchedHashAndPassword):

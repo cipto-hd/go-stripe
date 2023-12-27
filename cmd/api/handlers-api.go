@@ -7,12 +7,15 @@ import (
 	"errors"
 	"fmt"
 	"myapp/internal/cards"
+	"myapp/internal/encryption"
 	"strconv"
+
 	// "myapp/internal/encryption"
 	"myapp/internal/models"
 	"myapp/internal/urlsigner"
 	"myapp/internal/validator"
 	"net/http"
+
 	// "strconv"
 	"strings"
 	"time"
@@ -512,7 +515,7 @@ func (app *application) SendPasswordResetEmail(w http.ResponseWriter, r *http.Re
 		Secret: []byte(app.config.secretkey),
 	}
 
-	signedLink := sign.GenerateTokenFromString(link)
+	signedLink := sign.GenerateSignedString(link)
 
 	var data struct {
 		Link string
@@ -534,59 +537,54 @@ func (app *application) SendPasswordResetEmail(w http.ResponseWriter, r *http.Re
 	}
 
 	resp.Error = false
+	resp.Message = "Successfully sent password reset request email"
 
-	// app.writeJSON(w, http.StatusCreated, resp)
+	app.writeJSON(w, http.StatusCreated, resp)
 }
 
 // ResetPassword resets a user's password in the database
 func (app *application) ResetPassword(w http.ResponseWriter, r *http.Request) {
-	// var payload struct {
-	// 	Email    string `json:"email"`
-	// 	Password string `json:"password"`
-	// }
+	var payload struct {
+		Email    string `json:"email"`
+		Password string `json:"password"`
+	}
 
-	// err := app.readJSON(w, r, &payload)
-	// if err != nil {
-	// 	app.badRequest(w, r, err)
-	// 	return
-	// }
+	err := app.readJSON(w, r, &payload)
+	if err != nil {
+		app.badRequest(w, r, err)
+		return
+	}
 
-	// encyrptor := encryption.Encryption{
-	// 	Key: []byte(app.config.secretkey),
-	// }
+	encryptor := encryption.Encryption{
+		Key: []byte(app.config.secretkey),
+	}
 
-	// realEmail, err := encyrptor.Decrypt(payload.Email)
-	// if err != nil {
-	// 	app.badRequest(w, r, err)
-	// 	return
-	// }
+	realEmail, err := encryptor.Decrypt(payload.Email)
+	if err != nil {
+		app.badRequest(w, r, err)
+		return
+	}
 
-	// user, err := app.DB.GetUserByEmail(realEmail)
-	// if err != nil {
-	// 	app.badRequest(w, r, err)
-	// 	return
-	// }
+	user, err := app.DB.GetUserByEmail(realEmail)
+	if err != nil {
+		app.badRequest(w, r, err)
+		return
+	}
 
-	// newHash, err := bcrypt.GenerateFromPassword([]byte(payload.Password), 12)
-	// if err != nil {
-	// 	app.badRequest(w, r, err)
-	// 	return
-	// }
+	err = app.DB.UpdatePasswordForUser(user, payload.Password)
+	if err != nil {
+		app.badRequest(w, r, err)
+		return
+	}
 
-	// err = app.DB.UpdatePasswordForUser(user, string(newHash))
-	// if err != nil {
-	// 	app.badRequest(w, r, err)
-	// 	return
-	// }
+	var resp struct {
+		Error   bool   `json:"error"`
+		Message string `json:"message"`
+	}
+	resp.Error = false
+	resp.Message = "password changed"
 
-	// var resp struct {
-	// 	Error   bool   `json:"error"`
-	// 	Message string `json:"message"`
-	// }
-	// resp.Error = false
-	// resp.Message = "password changed"
-
-	// app.writeJSON(w, http.StatusCreated, resp)
+	app.writeJSON(w, http.StatusCreated, resp)
 }
 
 // AllSales returns all sales as a slice

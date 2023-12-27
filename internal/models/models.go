@@ -332,12 +332,22 @@ func (m *DBModel) Authenticate(email, password string) (int, error) {
 }
 
 // UpdatePasswordForUser updates the password hash for a given user, by user id
-func (m *DBModel) UpdatePasswordForUser(u User, hash string) error {
+func (m *DBModel) UpdatePasswordForUser(u User, password string) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 
+	id, err := m.Authenticate(u.Email, password)
+	if id > 0 && err == nil {
+		return errors.New("the password is the same as the old")
+	}
+
+	newHash, err := bcrypt.GenerateFromPassword([]byte(password), 12)
+	if err != nil {
+		return err
+	}
+
 	stmt := `update users set password = ? where id = ?`
-	_, err := m.DB.ExecContext(ctx, stmt, hash, u.ID)
+	_, err = m.DB.ExecContext(ctx, stmt, newHash, u.ID)
 	if err != nil {
 		return err
 	}
