@@ -34,12 +34,12 @@ func (app *application) routes() http.Handler {
 	mux.Route("/admin", func(mux chi.Router) {
 		mux.Use(app.Auth)
 		mux.Get("/virtual-terminal", app.VirtualTerminal)
-		// mux.Get("/all-sales", app.AllSales)
-		// mux.Get("/all-subscriptions", app.AllSubscriptions)
-		// mux.Get("/sales/{id}", app.ShowSale)
-		// mux.Get("/subscriptions/{id}", app.ShowSubscription)
-		// mux.Get("/all-users", app.AllUsers)
-		// mux.Get("/all-users/{id}", app.OneUser)
+		mux.Get("/sales", app.AllSales)
+		mux.Get("/subscriptions", app.AllSubscriptions)
+		mux.Get("/sales/{id}", app.ShowSale)
+		mux.Get("/subscriptions/{id}", app.ShowSubscription)
+		mux.Get("/users", app.AllUsers)
+		mux.Get("/users/{id}", app.OneUser)
 	})
 
 	// the path is relative from working directory

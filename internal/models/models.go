@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"math"
 	"strings"
 	"time"
 
@@ -367,7 +368,7 @@ func (m *DBModel) GetAllOrders() ([]*Order, error) {
 		o.id, o.widget_id, o.transaction_id, o.customer_id, 
 		o.status_id, o.quantity, o.amount, o.created_at,
 		o.updated_at, w.id, w.name, t.id, t.amount, t.currency,
-		t.last_four, t.expiry_month, t.expiry_year, t.payment_intent,
+		t.last_four, t.expiry_month, t.expiry_year, t.payment_intent_id,
 		t.bank_return_code, c.id, c.first_name, c.last_name, c.email
 		
 	from
@@ -437,7 +438,7 @@ func (m *DBModel) GetAllOrdersPaginated(pageSize, page int) ([]*Order, int, int,
 		o.id, o.widget_id, o.transaction_id, o.customer_id, 
 		o.status_id, o.quantity, o.amount, o.created_at,
 		o.updated_at, w.id, w.name, t.id, t.amount, t.currency,
-		t.last_four, t.expiry_month, t.expiry_year, t.payment_intent,
+		t.last_four, t.expiry_month, t.expiry_year, t.payment_intent_id,
 		t.bank_return_code, c.id, c.first_name, c.last_name, c.email
 		
 	from
@@ -507,7 +508,7 @@ func (m *DBModel) GetAllOrdersPaginated(pageSize, page int) ([]*Order, int, int,
 		return nil, 0, 0, err
 	}
 
-	lastPage := totalRecords / pageSize
+	lastPage := int(math.Ceil(float64(totalRecords) / float64(pageSize)))
 
 	return orders, lastPage, totalRecords, nil
 }
@@ -524,7 +525,7 @@ func (m *DBModel) GetAllSubscriptions() ([]*Order, error) {
 			o.id, o.widget_id, o.transaction_id, o.customer_id,
 			o.status_id, o.quantity, o.amount, o.created_at,
 			o.updated_at, w.id, w.name, t.id, t.amount, t.currency,
-			t.last_four, t.expiry_month, t.expiry_year, t.payment_intent,
+			t.last_four, t.expiry_month, t.expiry_year, t.payment_intent_id,
 			t.bank_return_code, c.id, c.first_name, c.last_name, c.email
 		from
 			orders o
@@ -593,7 +594,7 @@ func (m *DBModel) GetAllSubscriptionsPaginated(pageSize, page int) ([]*Order, in
 		o.id, o.widget_id, o.transaction_id, o.customer_id, 
 		o.status_id, o.quantity, o.amount, o.created_at,
 		o.updated_at, w.id, w.name, t.id, t.amount, t.currency,
-		t.last_four, t.expiry_month, t.expiry_year, t.payment_intent,
+		t.last_four, t.expiry_month, t.expiry_year, t.payment_intent_id,
 		t.bank_return_code, c.id, c.first_name, c.last_name, c.email
 		
 	from
@@ -663,7 +664,7 @@ func (m *DBModel) GetAllSubscriptionsPaginated(pageSize, page int) ([]*Order, in
 		return nil, 0, 0, err
 	}
 
-	lastPage := totalRecords / pageSize
+	lastPage := int(math.Ceil(float64(totalRecords) / float64(pageSize)))
 
 	return orders, lastPage, totalRecords, nil
 }
@@ -680,7 +681,7 @@ func (m *DBModel) GetOrderByID(id int) (Order, error) {
 			o.id, o.widget_id, o.transaction_id, o.customer_id,
 			o.status_id, o.quantity, o.amount, o.created_at,
 			o.updated_at, w.id, w.name, t.id, t.amount, t.currency,
-			t.last_four, t.expiry_month, t.expiry_year, t.payment_intent,
+			t.last_four, t.expiry_month, t.expiry_year, t.payment_intent_id,
 			t.bank_return_code, c.id, c.first_name, c.last_name, c.email
 		from
 			orders o

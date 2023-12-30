@@ -40,18 +40,18 @@ func (app *application) routes() http.Handler {
 		})
 
 		mux.Post("/virtual-terminal-succeeded", app.VirtualTerminalPaymentSucceeded)
-		// 	mux.Post("/all-sales", app.AllSales)
-		// 	mux.Post("/all-subscriptions", app.AllSubscriptions)
+		mux.Post("/sales", app.AllSales)
+		mux.Post("/subscriptions", app.AllSubscriptions)
 
-		// 	mux.Post("/get-sale/{id}", app.GetSale)
+		mux.Post("/sales/{id}", app.GetSale)
 
-		// 	mux.Post("/refund", app.RefundCharge)
-		// 	mux.Post("/cancel-subscription", app.CancelSubscription)
+		mux.Post("/refund", app.RefundCharge)
+		mux.Post("/cancel-subscription", app.CancelSubscription)
 
-		// 	mux.Post("/all-users", app.AllUsers)
-		// 	mux.Post("/all-users/{id}", app.OneUser)
-		// 	mux.Post("/all-users/edit/{id}", app.EditUser)
-		// 	mux.Post("/all-users/delete/{id}", app.DeleteUser)
+		mux.Post("/users", app.AllUsers)
+		mux.Post("/users/{id}", app.OneUser)
+		mux.Post("/users/edit/{id}", app.EditUser)
+		mux.Post("/users/delete/{id}", app.DeleteUser)
 
 	})
 
