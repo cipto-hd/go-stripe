@@ -11,6 +11,7 @@ func (app *application) routes() http.Handler {
 	mux.Use(SessionLoad)
 
 	mux.Get("/", app.Home)
+	mux.Get("/ws", app.WsEndPoint)
 
 	/* routes for buy/subscribe and receipt */
 	mux.Get("/widgets/{id}", app.ChargeOnce)             // show buy-once page

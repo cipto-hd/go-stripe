@@ -103,6 +103,9 @@ func main() {
 		Session:       session,
 	}
 
+	/* ListenToWsChannel should go before server ListenAndServe */
+	go app.ListenToWsChannel()
+
 	err = app.serve()
 
 	if err != nil {

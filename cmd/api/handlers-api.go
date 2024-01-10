@@ -9,13 +9,11 @@ import (
 	"myapp/internal/cards"
 	"myapp/internal/encryption"
 	"strconv"
-
 	// "myapp/internal/encryption"
 	"myapp/internal/models"
 	"myapp/internal/urlsigner"
 	"myapp/internal/validator"
 	"net/http"
-
 	// "strconv"
 	"strings"
 	"time"
@@ -796,6 +794,11 @@ func (app *application) EditUser(w http.ResponseWriter, r *http.Request) {
 
 	var user models.User
 
+	var resp struct {
+		Error   bool   `json:"error"`
+		Message string `json:"message"`
+	}
+
 	err := app.readJSON(w, r, &user)
 	if err != nil {
 		app.badRequest(w, r, err)
@@ -823,25 +826,28 @@ func (app *application) EditUser(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 	} else {
-		newHash, err := bcrypt.GenerateFromPassword([]byte(user.Password), 12)
-		if err != nil {
-			app.badRequest(w, r, err)
-			return
-		}
-		err = app.DB.AddUser(user, string(newHash))
-		if err != nil {
-			app.badRequest(w, r, err)
-			return
-		}
-	}
+		u, _ := app.DB.GetUserByEmail(user.Email)
+		if u.ID > 0 {
+			resp.Error = true
+			resp.Message = fmt.Sprintf("User exist with that email (%s)", user.Email)
+			app.writeJSON(w, http.StatusUnprocessableEntity, resp)
+		} else {
+			newHash, err := bcrypt.GenerateFromPassword([]byte(user.Password), 12)
+			if err != nil {
+				app.badRequest(w, r, err)
+				return
+			}
+			err = app.DB.AddUser(user, string(newHash))
+			if err != nil {
+				app.badRequest(w, r, err)
+				return
+			}
 
-	var resp struct {
-		Error   bool   `json:"error"`
-		Message string `json:"message"`
-	}
+			resp.Error = false
+			app.writeJSON(w, http.StatusOK, resp)
+		}
 
-	resp.Error = false
-	app.writeJSON(w, http.StatusOK, resp)
+	}
 }
 
 // DeleteUser deletes a user, and all associated tokens, from the database

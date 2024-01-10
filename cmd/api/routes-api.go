@@ -25,6 +25,12 @@ func (app *application) routes() http.Handler {
 
 	mux.Post("/api/create-customer-and-subscribe-to-plan", app.CreateCustomerAndSubscribeToPlan)
 
+	mux.Get("/api/test", func(w http.ResponseWriter, r *http.Request) {
+		user, err := app.DB.GetUserByEmail("fool@example.com")
+		app.infoLog.Printf("%+v, %+v", user, err)
+		w.Write([]byte("Hit api admin"))
+	})
+
 	/* auth routes */
 	mux.Post("/api/authenticate", app.CreateAuthToken)
 	mux.Post("/api/is-authenticated", app.CheckAuthentication)
@@ -34,10 +40,6 @@ func (app *application) routes() http.Handler {
 	/* admin routes */
 	mux.Route("/api/admin", func(mux chi.Router) {
 		mux.Use(app.Auth)
-
-		mux.Get("/test", func(w http.ResponseWriter, r *http.Request) {
-			w.Write([]byte("Hit api admin"))
-		})
 
 		mux.Post("/virtual-terminal-succeeded", app.VirtualTerminalPaymentSucceeded)
 		mux.Post("/sales", app.AllSales)
