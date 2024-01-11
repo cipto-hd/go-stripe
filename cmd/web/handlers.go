@@ -1,6 +1,8 @@
 package main
 
 import (
+	"bytes"
+	"encoding/json"
 	"fmt"
 	"myapp/internal/cards"
 	"myapp/internal/encryption"
@@ -34,6 +36,18 @@ func (app *application) VirtualTerminal(w http.ResponseWriter, r *http.Request) 
 	if err := app.renderTemplate(w, r, "terminal", nil); err != nil {
 		app.errorLog.Println(err)
 	}
+}
+
+// Order describes the json payload received by this microservice
+type Invoice struct {
+	ID        int       `json:"id"`
+	Quantity  int       `json:"quantity"`
+	Amount    int       `json:"amount"`
+	Product   string    `json:"product"`
+	FirstName string    `json:"first_name"`
+	LastName  string    `json:"last_name"`
+	Email     string    `json:"email"`
+	CreatedAt time.Time `json:"created_at"`
 }
 
 /*
@@ -98,10 +112,27 @@ func (app *application) PaymentSucceeded(w http.ResponseWriter, r *http.Request)
 		UpdatedAt:     time.Now(),
 	}
 
-	_, err = app.SaveOrder(order)
+	orderId, err := app.SaveOrder(order)
 	if err != nil {
 		app.errorLog.Println(err)
 		return
+	}
+
+	// call microservice
+	inv := Invoice{
+		ID:        orderId,
+		Amount:    order.Amount,
+		Product:   "Widget",
+		Quantity:  order.Quantity,
+		FirstName: txnData.FirstName,
+		LastName:  txnData.LastName,
+		Email:     txnData.Email,
+		CreatedAt: time.Now(),
+	}
+
+	err = app.callInvoiceMicro(inv)
+	if err != nil {
+		app.errorLog.Println(err)
 	}
 
 	// write this data to session, and then redirect user to new page
@@ -285,6 +316,29 @@ type TransactionData struct {
 	ExpiryYear      int
 	BankReturnCode  string
 	Type            ReceiptType
+}
+
+func (app *application) callInvoiceMicro(inv Invoice) error {
+	url := "http://localhost:5000/invoice/create-and-send"
+	out, err := json.MarshalIndent(inv, "", "\t")
+	if err != nil {
+		return err
+	}
+
+	req, err := http.NewRequest("POST", url, bytes.NewBuffer(out))
+	if err != nil {
+		return err
+	}
+	req.Header.Set("Content-Type", "application/json")
+
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	return nil
 }
 
 /*

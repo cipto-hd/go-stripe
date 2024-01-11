@@ -9,11 +9,13 @@ import (
 	"myapp/internal/cards"
 	"myapp/internal/encryption"
 	"strconv"
+
 	// "myapp/internal/encryption"
 	"myapp/internal/models"
 	"myapp/internal/urlsigner"
 	"myapp/internal/validator"
 	"net/http"
+
 	// "strconv"
 	"strings"
 	"time"
@@ -220,27 +222,27 @@ func (app *application) CreateCustomerAndSubscribeToPlan(w http.ResponseWriter, 
 			UpdatedAt:     time.Now(),
 		}
 
-		_, err = app.SaveOrder(order)
+		orderID, err := app.SaveOrder(order)
 		if err != nil {
 			app.errorLog.Println(err)
 			return
 		}
 
-		// inv := Invoice{
-		// 	ID:        orderID,
-		// 	Amount:    2000,
-		// 	Product:   "Bronze Plan monthly subscription",
-		// 	Quantity:  order.Quantity,
-		// 	FirstName: data.FirstName,
-		// 	LastName:  data.LastName,
-		// 	Email:     data.Email,
-		// 	CreatedAt: time.Now(),
-		// }
+		inv := Invoice{
+			ID:        orderID,
+			Amount:    2000,
+			Product:   "Bronze Plan monthly subscription",
+			Quantity:  order.Quantity,
+			FirstName: data.FirstName,
+			LastName:  data.LastName,
+			Email:     data.Email,
+			CreatedAt: time.Now(),
+		}
 
-		// err = app.callInvoiceMicro(inv)
-		// if err != nil {
-		// 	app.errorLog.Println(err)
-		// }
+		err = app.callInvoiceMicro(inv)
+		if err != nil {
+			app.errorLog.Println(err)
+		}
 	}
 
 	resp := jsonResponse{
