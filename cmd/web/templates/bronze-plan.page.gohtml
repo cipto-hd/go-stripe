@@ -27,6 +27,9 @@ Bronze Plan
   <div class="mb-3">
     <label for="first_name" class="form-label">First Name</label>
     <input type="text" name="first_name" id="first_name" class="form-control" required autocomplete="first_name_new">
+    <div id="first_name-help" class="valid-feedback">
+        Looks good!
+    </div>
   </div>
 
   <div class="mb-3">
@@ -170,15 +173,29 @@ Bronze Plan
         showPayButtons();
         fetch("{{.API}}/api/create-customer-and-subscribe-to-plan", requestOptions)
           .then(response => response.json())
-          .then(data => {
-            hidePayButton();
-            showCardSuccess();
-            sessionStorage.first_name = document.getElementById("first_name").value;
-            sessionStorage.last_name = document.getElementById("last_name").value;
-            sessionStorage.amount = "{{formatCurrency $widget.Price}}";
-            sessionStorage.last_four = result.paymentMethod.card.last4;
+          .then(data => {                
+            if (data.error === false) {
+              hidePayButton();
+              showCardSuccess();
+              sessionStorage.first_name = document.getElementById("first_name").value;
+              sessionStorage.last_name = document.getElementById("last_name").value;
+              sessionStorage.amount = "{{formatCurrency $widget.Price}}";
+              sessionStorage.last_four = result.paymentMethod.card.last4;
 
-            location.href = "/receipt/bronze";
+              location.href = "/receipt/bronze";
+            } else {
+              form.classList.remove("was-validated");
+
+              Object.entries(data.errors).forEach((i) => {
+                  const [key, value] = i;
+                  console.log(`${key}: ${value}`);
+                  document.getElementById(key).classList.add("is-invalid");
+                  document.getElementById(key + "-help").classList.remove("valid-feedback");
+                  document.getElementById(key + "-help").classList.add("invalid-feedback");
+                  document.getElementById(key + "-help").innerText = value;
+              })
+              showPayButtons();
+            }
           })
       }
     }
